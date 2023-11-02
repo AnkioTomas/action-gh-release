@@ -33,6 +33,7 @@ describe('util', () => {
       assert.equal(
         'foo',
         releaseBody({
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -53,6 +54,7 @@ describe('util', () => {
       assert.equal(
         'bar',
         releaseBody({
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -73,6 +75,7 @@ describe('util', () => {
       assert.equal(
         'bar',
         releaseBody({
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -104,6 +107,7 @@ describe('util', () => {
           INPUT_DISCUSSION_CATEGORY_NAME: ''
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -129,6 +133,7 @@ describe('util', () => {
           INPUT_TARGET_COMMITISH: 'affa18ef97bc9db20076945705aba8c516139abd'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -153,6 +158,7 @@ describe('util', () => {
           INPUT_DISCUSSION_CATEGORY_NAME: 'releases'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -178,6 +184,7 @@ describe('util', () => {
           INPUT_GENERATE_RELEASE_NOTES: 'true'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -206,6 +213,7 @@ describe('util', () => {
           INPUT_TOKEN: 'input-token'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: 'env-token',
@@ -232,6 +240,7 @@ describe('util', () => {
           INPUT_TOKEN: 'input-token'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: 'input-token',
@@ -257,6 +266,7 @@ describe('util', () => {
           INPUT_PRERELEASE: 'true'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
@@ -281,6 +291,7 @@ describe('util', () => {
           INPUT_APPEND_BODY: 'true'
         }),
         {
+          input_base_url: "https://api.github.com", input_platform: "github",
           github_ref: '',
           github_repository: '',
           github_token: '',
