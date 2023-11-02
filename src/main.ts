@@ -8,7 +8,7 @@ import {GiteaRepository} from './repositories/GiteaRepository'
 async function run(): Promise<void> {
   const supportedPlatform = {
     github: GithubRepository,
-    gitea:GiteaRepository,
+    gitea: GiteaRepository,
   }
   function isSupportedPlatform(type: string): type is keyof typeof supportedPlatform {
     return type in supportedPlatform
@@ -16,7 +16,7 @@ async function run(): Promise<void> {
 
   try {
     const config = parseConfig(env)
-
+    core.info(`🤔Your platform is ${config.input_platform}`)
     if (!isSupportedPlatform(config.input_platform)) {
       throw new Error(`⚠️ Unsupported this platform: ${config.input_platform}`)
     }

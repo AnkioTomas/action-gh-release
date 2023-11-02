@@ -49,7 +49,7 @@ inputs:
   platform:
     description: 'use this action in github or gitea or other platform'
     default: "github"
-  baseUrl:
+  url:
     description: 'code platform'
     default: "https://api.github.com"
 env:

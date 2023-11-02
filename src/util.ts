@@ -49,6 +49,7 @@ export const parseInputFiles = (files: string): string[] => {
 }
 
 export const parseConfig = (env: Env): Config => {
+  console.log(env)
   return {
     github_token: env.GITHUB_TOKEN || env.INPUT_TOKEN || '',
     github_ref: env.GITHUB_REF || '',
@@ -66,7 +67,7 @@ export const parseConfig = (env: Env): Config => {
     input_generate_release_notes: env.INPUT_GENERATE_RELEASE_NOTES === 'true',
     input_append_body: env.INPUT_APPEND_BODY === 'true',
     input_platform: env.INPUT_PLATFORM || 'github',
-    input_base_url: env.INPUT_BASEURL || 'https://api.github.com'
+    input_base_url: env.INPUT_URL || 'https://api.github.com'
   }
 }
 

@@ -303,6 +303,7 @@ function run() {
         }
         try {
             const config = (0, util_1.parseConfig)(process_1.env);
+            core.info(`🤔Your platform is ${config.input_platform}`);
             if (!isSupportedPlatform(config.input_platform)) {
                 throw new Error(`⚠️ Unsupported this platform: ${config.input_platform}`);
             }
@@ -728,6 +729,7 @@ const parseInputFiles = (files) => {
 exports.parseInputFiles = parseInputFiles;
 const parseConfig = (env) => {
     var _a;
+    console.log(env);
     return {
         github_token: env.GITHUB_TOKEN || env.INPUT_TOKEN || '',
         github_ref: env.GITHUB_REF || '',
@@ -745,7 +747,7 @@ const parseConfig = (env) => {
         input_generate_release_notes: env.INPUT_GENERATE_RELEASE_NOTES === 'true',
         input_append_body: env.INPUT_APPEND_BODY === 'true',
         input_platform: env.INPUT_PLATFORM || 'github',
-        input_base_url: env.INPUT_BASEURL || 'https://api.github.com'
+        input_base_url: env.INPUT_URL || 'https://api.github.com'
     };
 };
 exports.parseConfig = parseConfig;
