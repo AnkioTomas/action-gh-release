@@ -4,7 +4,7 @@ import {Api, CreateReleaseOption, giteaApi} from 'gitea-js'
 import fetch from 'cross-fetch'
 import {env} from "process";
 import {HttpResponse,Release as GiteRelease} from "gitea-js/dist";
-class GiteaRepository extends BaseRepository{
+export class GiteaRepository extends BaseRepository{
     private api: Api<unknown>;
     constructor(protected token:string) {
         super(token);

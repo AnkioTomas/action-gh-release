@@ -4,10 +4,11 @@ import {GitHubReleaser, release, upload} from './github'
 
 import {env} from 'process'
 import {GithubRepository} from './repositories/GithubRepository'
-
+import {GiteaRepository} from './repositories/GiteaRepository'
 async function run(): Promise<void> {
   const supportedPlatform = {
-    github: GithubRepository
+    github: GithubRepository,
+    gitea:GiteaRepository,
   }
   function isSupportedPlatform(type: string): type is keyof typeof supportedPlatform {
     return type in supportedPlatform
