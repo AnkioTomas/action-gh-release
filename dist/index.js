@@ -744,8 +744,8 @@ const parseConfig = (env) => {
         input_discussion_category_name: env.INPUT_DISCUSSION_CATEGORY_NAME || undefined,
         input_generate_release_notes: env.INPUT_GENERATE_RELEASE_NOTES === 'true',
         input_append_body: env.INPUT_APPEND_BODY === 'true',
-        input_platform: env.INPUR_PLATFORM || 'github',
-        input_base_url: env.INPUR_BASEURL || 'https://api.github.com'
+        input_platform: env.INPUT_PLATFORM || 'github',
+        input_base_url: env.INPUT_BASEURL || 'https://api.github.com'
     };
 };
 exports.parseConfig = parseConfig;
