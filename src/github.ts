@@ -168,12 +168,10 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
     if (config.input_draft) {
       // you can't get a an existing draft by tag
       // so we must find one in the list of all releases
-      core.info(`allReleases`)
       for await (const response of releaser.allReleases({
         owner,
         repo
       })) {
-        core.info(`response.data => ${JSON.stringify(response.data)}`)
         const rel = response.data.find(r => r.tag_name === tag)
         if (rel) {
           existingRelease = rel
@@ -181,7 +179,6 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
         }
       }
     } else {
-      core.info(`getReleaseByTag `)
       existingRelease = (
         await releaser.getReleaseByTag({
           owner,
@@ -202,8 +199,6 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
 
     const tag_name = tag
     const name = config.input_name || existingRelease.name || tag
-    core.info(`ReleaseName => ${name}`)
-    core.info(`TagName => ${tag_name}`)
     // revisit: support a new body-concat-strategy input for accumulating
     // body parts as a release gets updated. some users will likely want this while
     // others won't previously this was duplicating content for most which
@@ -216,7 +211,6 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
     } else {
       body = workflowBody || existingReleaseBody
     }
-    core.info(`ReleaseBody => ${body}`)
     const draft = config.input_draft !== undefined ? config.input_draft : existingRelease.draft
     const prerelease = config.input_prerelease !== undefined ? config.input_prerelease : existingRelease.prerelease
 
@@ -233,7 +227,6 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
       discussion_category_name,
       generate_release_notes
     })
-    core.info(`update => ${rel.data}`)
     return rel.data
   } catch (error: any) {
     if (error.status === 404) {

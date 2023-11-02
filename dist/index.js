@@ -130,10 +130,9 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
     try {
         let existingRelease = {};
         if (config.input_draft) {
-            // you can't get a an existing draft by tag
-            // so we must find one in the list of all releases
-            core.info(`allReleases`);
             try {
+                // you can't get a an existing draft by tag
+                // so we must find one in the list of all releases
                 for (var _d = true, _e = __asyncValues(releaser.allReleases({
                     owner,
                     repo
@@ -141,7 +140,6 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
                     _c = _f.value;
                     _d = false;
                     const response = _c;
-                    core.info(`response.data => ${JSON.stringify(response.data)}`);
                     const rel = response.data.find(r => r.tag_name === tag);
                     if (rel) {
                         existingRelease = rel;
@@ -158,7 +156,6 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
             }
         }
         else {
-            core.info(`getReleaseByTag `);
             existingRelease = (yield releaser.getReleaseByTag({
                 owner,
                 repo,
@@ -176,8 +173,6 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
         }
         const tag_name = tag;
         const name = config.input_name || existingRelease.name || tag;
-        core.info(`ReleaseName => ${name}`);
-        core.info(`TagName => ${tag_name}`);
         // revisit: support a new body-concat-strategy input for accumulating
         // body parts as a release gets updated. some users will likely want this while
         // others won't previously this was duplicating content for most which
@@ -191,7 +186,6 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
         else {
             body = workflowBody || existingReleaseBody;
         }
-        core.info(`ReleaseBody => ${body}`);
         const draft = config.input_draft !== undefined ? config.input_draft : existingRelease.draft;
         const prerelease = config.input_prerelease !== undefined ? config.input_prerelease : existingRelease.prerelease;
         const rel = yield releaser.updateRelease({
@@ -207,7 +201,6 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
             discussion_category_name,
             generate_release_notes
         });
-        core.info(`update => ${rel.data}`);
         return rel.data;
     }
     catch (error) {
@@ -545,7 +538,6 @@ class GiteaRepository extends BaseRepository_1.BaseRepository {
                 contentType: params.mime
             });
             try {
-                console.log(params.url, formData.getHeaders());
                 const response = yield (0, cross_fetch_1.default)(params.url, {
                     method: 'POST',
                     headers: Object.assign(Object.assign({}, formData.getHeaders()), { 'accept': 'application/json', authorization: `token ${this.token}` }),
