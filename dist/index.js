@@ -53,27 +53,26 @@ const fs_1 = __nccwpck_require__(7147);
 const mime_1 = __nccwpck_require__(9994);
 const path_1 = __nccwpck_require__(1017);
 class GitHubReleaser {
-    constructor(github) {
-        this.github = github;
+    constructor(repository) {
+        this.repository = repository;
     }
     getReleaseByTag(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.github.rest.repos.getReleaseByTag(params);
+            return this.repository.getReleaseByTag(params);
         });
     }
     createRelease(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.github.rest.repos.createRelease(params);
+            return this.repository.createRelease(params);
         });
     }
     updateRelease(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.github.rest.repos.updateRelease(params);
+            return this.repository.updateRelease(params);
         });
     }
     allReleases(params) {
-        const updatedParams = Object.assign({ per_page: 100 }, params);
-        return this.github.paginate.iterator(this.github.rest.repos.listReleases.endpoint.merge(updatedParams));
+        return this.repository.allReleases(params);
     }
 }
 exports.GitHubReleaser = GitHubReleaser;
@@ -91,35 +90,28 @@ const mimeOrDefault = (path) => {
 };
 exports.mimeOrDefault = mimeOrDefault;
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const upload = (config, github, url, path, currentAssets) => __awaiter(void 0, void 0, void 0, function* () {
+const upload = (config, repository, url, path, currentAssets, id) => __awaiter(void 0, void 0, void 0, function* () {
     const [owner, repo] = config.github_repository.split('/');
     const { name, size, mime, data: body } = (0, exports.asset)(path);
     const currentAsset = currentAssets.find(({ name: currentName }) => currentName === name);
     if (currentAsset) {
         core.info(`♻️ Deleting previously uploaded asset ${name}...`);
-        yield github.rest.repos.deleteReleaseAsset({
+        yield repository.deleteReleaseAsset({
             asset_id: currentAsset.id || 1,
             owner,
-            repo
+            repo,
+            id
         });
     }
     core.info(`⬆️ Uploading ${name}...`);
-    const endpoint = new URL(url);
-    endpoint.searchParams.append('name', name);
-    const resp = yield fetch(endpoint, {
-        headers: {
-            'content-length': `${size}`,
-            'content-type': mime,
-            authorization: `token ${config.github_token}`
-        },
-        method: 'POST',
-        body
+    return repository.uploadAssets({
+        url,
+        name,
+        mime,
+        size,
+        body,
+        owner, repo, id
     });
-    const json = yield resp.json();
-    if (resp.status !== 201) {
-        throw new Error(`Failed to upload release asset ${name}. received status code ${resp.status}\n${json.message}\n${JSON.stringify(json.errors)}`);
-    }
-    return json;
 });
 exports.upload = upload;
 const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, void 0, function* () {
@@ -294,13 +286,22 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const util_1 = __nccwpck_require__(4024);
 const github_1 = __nccwpck_require__(5928);
-const github_2 = __nccwpck_require__(5438);
 const process_1 = __nccwpck_require__(7282);
+const GithubRepository_1 = __nccwpck_require__(5887);
 function run() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        const supportedPlatform = {
+            github: GithubRepository_1.GithubRepository,
+        };
+        function isSupportedPlatform(type) {
+            return type in supportedPlatform;
+        }
         try {
             const config = (0, util_1.parseConfig)(process_1.env);
+            if (!isSupportedPlatform(config.input_platform)) {
+                throw new Error(`⚠️ Unsupported this platform: ${config.input_platform}`);
+            }
             if (!config.input_tag_name && !(0, util_1.isTag)(config.github_ref) && !config.input_draft) {
                 throw new Error(`⚠️ GitHub Releases requires a tag`);
             }
@@ -313,24 +314,10 @@ function run() {
                     throw new Error(`⚠️ There were unmatched files`);
                 }
             }
-            const gh = (0, github_2.getOctokit)(config.github_token, {
-                throttle: {
-                    onRateLimit: (retryAfter, options) => {
-                        core.warning(`Request quota exhausted for request ${options.method} ${options.url}`);
-                        if (options.request.retryCount === 0) {
-                            // only retries once
-                            core.info(`Retrying after ${retryAfter} seconds!`);
-                            return true;
-                        }
-                    },
-                    onAbuseLimit: (retryAfter, options) => {
-                        // does not retry, only logs a warning
-                        core.warning(`Abuse detected for request ${options.method} ${options.url}`);
-                    }
-                }
-            });
+            // create repository
+            const repository = new supportedPlatform[config.input_platform](config.github_token);
             //)
-            const rel = yield (0, github_1.release)(config, new github_1.GitHubReleaser(gh));
+            const rel = yield (0, github_1.release)(config, new github_1.GitHubReleaser(repository));
             if (config.input_files && ((_b = config.input_files) === null || _b === void 0 ? void 0 : _b.length) > 0) {
                 const files = (0, util_1.paths)(config.input_files);
                 if (files.length === 0) {
@@ -338,9 +325,7 @@ function run() {
                 }
                 const currentAssets = rel.assets;
                 const assets = yield Promise.all(files.map((path) => __awaiter(this, void 0, void 0, function* () {
-                    const json = yield (0, github_1.upload)(config, gh, (0, util_1.uploadUrl)(rel.upload_url), path, currentAssets);
-                    delete json.uploader;
-                    return json;
+                    return yield (0, github_1.upload)(config, repository, (0, util_1.uploadUrl)(rel.upload_url), path, currentAssets, rel.id);
                 }))).catch(error => {
                     throw error;
                 });
@@ -357,6 +342,134 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 786:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BaseRepository = void 0;
+class BaseRepository {
+    constructor(token) {
+        this.token = token;
+    }
+}
+exports.BaseRepository = BaseRepository;
+
+
+/***/ }),
+
+/***/ 5887:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubRepository = void 0;
+const BaseRepository_1 = __nccwpck_require__(786);
+const github_1 = __nccwpck_require__(5438);
+const core = __importStar(__nccwpck_require__(2186));
+class GithubRepository extends BaseRepository_1.BaseRepository {
+    constructor(token) {
+        super(token);
+        this.token = token;
+        this.gh = (0, github_1.getOctokit)(token, {
+            throttle: {
+                onRateLimit: (retryAfter, options) => {
+                    core.warning(`Request quota exhausted for request ${options.method} ${options.url}`);
+                    if (options.request.retryCount === 0) {
+                        // only retries once
+                        core.info(`Retrying after ${retryAfter} seconds!`);
+                        return true;
+                    }
+                },
+                onAbuseLimit: (retryAfter, options) => {
+                    // does not retry, only logs a warning
+                    core.warning(`Abuse detected for request ${options.method} ${options.url}`);
+                }
+            }
+        });
+    }
+    getReleaseByTag(params) {
+        return this.gh.rest.repos.getReleaseByTag(params);
+    }
+    createRelease(params) {
+        return this.gh.rest.repos.createRelease(params);
+    }
+    updateRelease(params) {
+        return this.gh.rest.repos.updateRelease(params);
+    }
+    allReleases(params) {
+        const updatedParams = Object.assign({ per_page: 100 }, params);
+        return this.gh.paginate.iterator(this.gh.rest.repos.listReleases.endpoint.merge(updatedParams));
+    }
+    deleteReleaseAsset(params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.gh.rest.repos.deleteReleaseAsset({
+                asset_id: params.asset_id || 1,
+                owner: params.owner,
+                repo: params.repo,
+            });
+        });
+    }
+    uploadAssets(param) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const endpoint = new URL(param.url);
+            endpoint.searchParams.append('name', param.name);
+            const resp = yield fetch(endpoint, {
+                headers: {
+                    'content-length': `${param.size}`,
+                    'content-type': param.mime,
+                    authorization: `token ${this.token}`
+                },
+                method: 'POST',
+                body: param.body
+            });
+            const json = yield resp.json();
+            if (resp.status !== 201) {
+                throw new Error(`Failed to upload release asset ${param.name}. received status code ${resp.status}\n${json.message}\n${JSON.stringify(json.errors)}`);
+            }
+            return json.json();
+        });
+    }
+}
+exports.GithubRepository = GithubRepository;
 
 
 /***/ }),
@@ -429,7 +542,9 @@ const parseConfig = (env) => {
         input_target_commitish: env.INPUT_TARGET_COMMITISH || undefined,
         input_discussion_category_name: env.INPUT_DISCUSSION_CATEGORY_NAME || undefined,
         input_generate_release_notes: env.INPUT_GENERATE_RELEASE_NOTES === 'true',
-        input_append_body: env.INPUT_APPEND_BODY === 'true'
+        input_append_body: env.INPUT_APPEND_BODY === 'true',
+        input_platform: env.INPUR_PLATFORM || "github",
+        input_base_url: env.INPUR_BASEURL || "https://api.github.com",
     };
 };
 exports.parseConfig = parseConfig;
