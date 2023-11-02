@@ -168,10 +168,12 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
     if (config.input_draft) {
       // you can't get a an existing draft by tag
       // so we must find one in the list of all releases
+      core.info(`allReleases`)
       for await (const response of releaser.allReleases({
         owner,
         repo
       })) {
+        core.info(`response.data => ${JSON.stringify(response.data)}`)
         const rel = response.data.find(r => r.tag_name === tag)
         if (rel) {
           existingRelease = rel
@@ -179,6 +181,7 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
         }
       }
     } else {
+      core.info(`getReleaseByTag `)
       existingRelease = (
         await releaser.getReleaseByTag({
           owner,

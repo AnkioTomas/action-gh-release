@@ -130,9 +130,10 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
     try {
         let existingRelease = {};
         if (config.input_draft) {
+            // you can't get a an existing draft by tag
+            // so we must find one in the list of all releases
+            core.info(`allReleases`);
             try {
-                // you can't get a an existing draft by tag
-                // so we must find one in the list of all releases
                 for (var _d = true, _e = __asyncValues(releaser.allReleases({
                     owner,
                     repo
@@ -140,6 +141,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
                     _c = _f.value;
                     _d = false;
                     const response = _c;
+                    core.info(`response.data => ${JSON.stringify(response.data)}`);
                     const rel = response.data.find(r => r.tag_name === tag);
                     if (rel) {
                         existingRelease = rel;
@@ -156,6 +158,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
             }
         }
         else {
+            core.info(`getReleaseByTag `);
             existingRelease = (yield releaser.getReleaseByTag({
                 owner,
                 repo,

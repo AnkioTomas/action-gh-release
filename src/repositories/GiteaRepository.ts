@@ -14,7 +14,7 @@ export class GiteaRepository extends BaseRepository{
         })
     }
 
-    async * allReleases(params: { owner: string; repo: string }): AsyncIterableIterator<{ data: Release[] }> {
+    async *allReleases(params: { owner: string; repo: string }): AsyncIterableIterator<{ data: Release[] }> {
         let count = 1;
         let api = this.api;
         let countBreak = false;
