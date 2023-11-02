@@ -124,6 +124,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
     }
     const [owner, repo] = config.github_repository.split('/');
     const tag = config.input_tag_name || ((0, util_1.isTag)(config.github_ref) ? config.github_ref.replace('refs/tags/', '') : '');
+    core.info(`${owner}/${repo} => ${tag}`);
     const discussion_category_name = config.input_discussion_category_name;
     const generate_release_notes = config.input_generate_release_notes;
     try {
@@ -172,6 +173,8 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
         }
         const tag_name = tag;
         const name = config.input_name || existingRelease.name || tag;
+        core.info(`ReleaseName => ${name}`);
+        core.info(`TagName => ${tag_name}`);
         // revisit: support a new body-concat-strategy input for accumulating
         // body parts as a release gets updated. some users will likely want this while
         // others won't previously this was duplicating content for most which
@@ -185,6 +188,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
         else {
             body = workflowBody || existingReleaseBody;
         }
+        core.info(`ReleaseBody => ${body}`);
         const draft = config.input_draft !== undefined ? config.input_draft : existingRelease.draft;
         const prerelease = config.input_prerelease !== undefined ? config.input_prerelease : existingRelease.prerelease;
         const rel = yield releaser.updateRelease({
@@ -200,6 +204,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
             discussion_category_name,
             generate_release_notes
         });
+        core.info(`update => ${rel.data}`);
         return rel.data;
     }
     catch (error) {
@@ -237,7 +242,7 @@ const release = (config, releaser, maxRetries = 3) => __awaiter(void 0, void 0, 
             }
         }
         else {
-            core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${error}`);
+            core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${error.message}`);
             throw error;
         }
     }
@@ -482,6 +487,7 @@ class GiteaRepository extends BaseRepository_1.BaseRepository {
         });
     }
     convertRelease(result) {
+        console.log(result);
         if (result.error !== null) {
             throw new Error("release error : " + result.error.message);
         }
@@ -729,7 +735,6 @@ const parseInputFiles = (files) => {
 exports.parseInputFiles = parseInputFiles;
 const parseConfig = (env) => {
     var _a;
-    console.log(env);
     return {
         github_token: env.GITHUB_TOKEN || env.INPUT_TOKEN || '',
         github_ref: env.GITHUB_REF || '',

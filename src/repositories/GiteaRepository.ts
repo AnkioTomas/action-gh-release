@@ -106,6 +106,7 @@ export class GiteaRepository extends BaseRepository{
     }
 
     private convertRelease(result:HttpResponse<GiteRelease, any>){
+        console.log(result)
         if (result.error !== null) {
             throw new Error("release error : " + result.error.message)
         }

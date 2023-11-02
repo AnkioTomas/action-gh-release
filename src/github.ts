@@ -158,6 +158,8 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
   const [owner, repo] = config.github_repository.split('/')
   const tag = config.input_tag_name || (isTag(config.github_ref) ? config.github_ref.replace('refs/tags/', '') : '')
 
+  core.info(`${owner}/${repo} => ${tag}`)
+
   const discussion_category_name = config.input_discussion_category_name
   const generate_release_notes = config.input_generate_release_notes
   try {
@@ -197,6 +199,8 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
 
     const tag_name = tag
     const name = config.input_name || existingRelease.name || tag
+    core.info(`ReleaseName => ${name}`)
+    core.info(`TagName => ${tag_name}`)
     // revisit: support a new body-concat-strategy input for accumulating
     // body parts as a release gets updated. some users will likely want this while
     // others won't previously this was duplicating content for most which
@@ -209,7 +213,7 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
     } else {
       body = workflowBody || existingReleaseBody
     }
-
+    core.info(`ReleaseBody => ${body}`)
     const draft = config.input_draft !== undefined ? config.input_draft : existingRelease.draft
     const prerelease = config.input_prerelease !== undefined ? config.input_prerelease : existingRelease.prerelease
 
@@ -226,6 +230,7 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
       discussion_category_name,
       generate_release_notes
     })
+    core.info(`update => ${rel.data}`)
     return rel.data
   } catch (error: any) {
     if (error.status === 404) {
@@ -265,7 +270,7 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
         return release(config, releaser, maxRetries - 1)
       }
     } else {
-      core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${error}`)
+      core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${error.message}`)
       throw error
     }
   }
