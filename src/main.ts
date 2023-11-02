@@ -1,16 +1,29 @@
 import * as core from '@actions/core'
-import {paths, parseConfig, isTag, unmatchedPatterns, uploadUrl} from './util'
-import {release, upload, GitHubReleaser} from './github'
-import {getOctokit} from '@actions/github'
+import {isTag, parseConfig, paths, unmatchedPatterns, uploadUrl} from './util'
+import {GitHubReleaser, release, upload} from './github'
 
 import {env} from 'process'
+import {GithubRepository} from './repositories/GithubRepository'
 
 async function run(): Promise<void> {
+  const supportedPlatform = {
+    github: GithubRepository
+  }
+  function isSupportedPlatform(type: string): type is keyof typeof supportedPlatform {
+    return type in supportedPlatform
+  }
+
   try {
     const config = parseConfig(env)
+
+    if (!isSupportedPlatform(config.input_platform)) {
+      throw new Error(`⚠️ Unsupported this platform: ${config.input_platform}`)
+    }
+
     if (!config.input_tag_name && !isTag(config.github_ref) && !config.input_draft) {
       throw new Error(`⚠️ GitHub Releases requires a tag`)
     }
+
     if (config.input_files && config.input_files?.length > 0) {
       const patterns = unmatchedPatterns(config.input_files)
       for (const pattern of patterns) {
@@ -21,24 +34,12 @@ async function run(): Promise<void> {
       }
     }
 
-    const gh = getOctokit(config.github_token, {
-      throttle: {
-        onRateLimit: (retryAfter, options) => {
-          core.warning(`Request quota exhausted for request ${options.method} ${options.url}`)
-          if (options.request.retryCount === 0) {
-            // only retries once
-            core.info(`Retrying after ${retryAfter} seconds!`)
-            return true
-          }
-        },
-        onAbuseLimit: (retryAfter, options) => {
-          // does not retry, only logs a warning
-          core.warning(`Abuse detected for request ${options.method} ${options.url}`)
-        }
-      }
-    })
+    // create repository
+    const repository = new supportedPlatform[config.input_platform](config.github_token)
+
     //)
-    const rel = await release(config, new GitHubReleaser(gh))
+    const rel = await release(config, new GitHubReleaser(repository))
+
     if (config.input_files && config.input_files?.length > 0) {
       const files = paths(config.input_files)
       if (files.length === 0) {
@@ -47,9 +48,7 @@ async function run(): Promise<void> {
       const currentAssets = rel.assets
       const assets = await Promise.all(
         files.map(async path => {
-          const json = await upload(config, gh, uploadUrl(rel.upload_url), path, currentAssets)
-          delete json.uploader
-          return json
+          return await upload(config, repository, uploadUrl(rel.upload_url), path, currentAssets, rel.id)
         })
       ).catch(error => {
         throw error

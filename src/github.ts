@@ -1,11 +1,9 @@
 import * as core from '@actions/core'
-import {GitHub} from '@actions/github/lib/utils'
 import {Config, isTag, releaseBody} from './util'
 import {statSync, readFileSync} from 'fs'
 import {getType} from 'mime'
 import {basename} from 'path'
-
-type NewGitHub = InstanceType<typeof GitHub>
+import {BaseRepository} from './repositories/BaseRepository'
 
 export interface ReleaseAsset {
   name: string
@@ -61,13 +59,10 @@ export interface Releaser {
 }
 
 export class GitHubReleaser implements Releaser {
-  github: NewGitHub
-  constructor(github: NewGitHub) {
-    this.github = github
-  }
+  constructor(private repository: BaseRepository) {}
 
   async getReleaseByTag(params: {owner: string; repo: string; tag: string}): Promise<{data: Release}> {
-    return this.github.rest.repos.getReleaseByTag(params)
+    return this.repository.getReleaseByTag(params)
   }
 
   async createRelease(params: {
@@ -82,7 +77,7 @@ export class GitHubReleaser implements Releaser {
     discussion_category_name: string | undefined
     generate_release_notes: boolean | undefined
   }): Promise<{data: Release}> {
-    return this.github.rest.repos.createRelease(params)
+    return this.repository.createRelease(params)
   }
 
   async updateRelease(params: {
@@ -98,12 +93,11 @@ export class GitHubReleaser implements Releaser {
     discussion_category_name: string | undefined
     generate_release_notes: boolean | undefined
   }): Promise<{data: Release}> {
-    return this.github.rest.repos.updateRelease(params)
+    return this.repository.updateRelease(params)
   }
 
   allReleases(params: {owner: string; repo: string}): AsyncIterableIterator<{data: Release[]}> {
-    const updatedParams = {per_page: 100, ...params}
-    return this.github.paginate.iterator(this.github.rest.repos.listReleases.endpoint.merge(updatedParams))
+    return this.repository.allReleases(params)
   }
 }
 
@@ -123,43 +117,36 @@ export const mimeOrDefault = (path: string): string => {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const upload = async (
   config: Config,
-  github: NewGitHub,
+  repository: BaseRepository,
   url: string,
   path: string,
-  currentAssets: {id: number; name: string}[]
+  currentAssets: {id: number; name: string}[],
+  id: number
 ): Promise<any> => {
   const [owner, repo] = config.github_repository.split('/')
   const {name, size, mime, data: body} = asset(path)
   const currentAsset = currentAssets.find(({name: currentName}) => currentName === name)
   if (currentAsset) {
     core.info(`♻️ Deleting previously uploaded asset ${name}...`)
-    await github.rest.repos.deleteReleaseAsset({
+    await repository.deleteReleaseAsset({
       asset_id: currentAsset.id || 1,
       owner,
-      repo
+      repo,
+      id
     })
   }
   core.info(`⬆️ Uploading ${name}...`)
-  const endpoint = new URL(url)
-  endpoint.searchParams.append('name', name)
-  const resp = await fetch(endpoint, {
-    headers: {
-      'content-length': `${size}`,
-      'content-type': mime,
-      authorization: `token ${config.github_token}`
-    },
-    method: 'POST',
-    body
+
+  return repository.uploadAssets({
+    url,
+    name,
+    mime,
+    size,
+    body,
+    owner,
+    repo,
+    id
   })
-  const json = await resp.json()
-  if (resp.status !== 201) {
-    throw new Error(
-      `Failed to upload release asset ${name}. received status code ${resp.status}\n${json.message}\n${JSON.stringify(
-        json.errors
-      )}`
-    )
-  }
-  return json
 }
 
 export const release = async (config: Config, releaser: Releaser, maxRetries = 3): Promise<Release> => {
