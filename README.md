@@ -1,6 +1,8 @@
+ 
+
 ## Fork
 
-This is a fork from https://github.com/softprops/action-gh-release with various patches and modifications applied - Please refer to the original action for any questions.
+This is a fork from https://github.com/mikepenz/action-gh-release and added support for Gitea platform
 
 <div align="center">
   📦 :octocat:
@@ -20,6 +22,22 @@ This is a fork from https://github.com/softprops/action-gh-release with various 
 <br />
 
 ## 🤸 Usage
+
+
+### For Gitea
+
+```yaml
+      - name: Create Release
+        uses: dreamncn/action-gh-release@v4.0.1
+        with:
+          platform: "gitea"
+          url: "https://gitea.com"
+          body: ${{steps.github_release.outputs.changelog}}
+          files: |
+            dist/user_*.zip
+
+
+```
 
 ### 🚥 Limit releases to pushes to tags
 
