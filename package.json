@@ -28,6 +28,7 @@
     "@octokit/plugin-retry": "^6.0.1",
     "@octokit/plugin-throttling": "^8.0.0",
     "cross-fetch": "^4.0.0",
+    "form-data": "^4.0.0",
     "gitea-js": "^1.20.1",
     "glob": "^10.3.10",
     "mime": "^3.0.0"

@@ -1,14 +1,15 @@
 import {BaseRepository} from "./BaseRepository";
 import {Release} from "../github";
-import {Api, CreateReleaseOption, giteaApi} from 'gitea-js'
-import fetch from 'cross-fetch'
+import { Api, CreateReleaseOption, EditReactionOption, EditReleaseOption, giteaApi } from "gitea-js";
+import fetch from 'cross-fetch';
 import {env} from "process";
+import FormData from 'form-data';
 import {HttpResponse,Release as GiteRelease} from "gitea-js/dist";
 export class GiteaRepository extends BaseRepository{
     private api: Api<unknown>;
     constructor(protected token:string) {
         super(token);
-        this.api = giteaApi(env.INPUR_BASEURL || "https://gitea.com", {
+        this.api = giteaApi(env.INPUT_URL || "https://gitea.com", {
             token,
             customFetch: fetch
         })
@@ -54,7 +55,7 @@ export class GiteaRepository extends BaseRepository{
                             prerelease: !!datum.prerelease,
                             tag_name: datum.tag_name || "",
                             target_commitish: datum.target_commitish || "",
-                            upload_url: datum.zipball_url ||datum.tarball_url || ""
+                            upload_url: datum.url + "/assets"|| ""
                         });
                     }
 
@@ -94,8 +95,6 @@ export class GiteaRepository extends BaseRepository{
 
         let result = await this.api.repos.repoCreateRelease(params.owner, params.repo, option)
 
-
-
         return this.convertRelease(result)
     }
 
@@ -106,7 +105,6 @@ export class GiteaRepository extends BaseRepository{
     }
 
     private convertRelease(result:HttpResponse<GiteRelease, any>){
-        console.log(result)
         if (result.error !== null) {
             throw new Error("release error : " + result.error.message)
         }
@@ -131,7 +129,7 @@ export class GiteaRepository extends BaseRepository{
             prerelease: !!result.data.prerelease,
             tag_name: result.data.tag_name || "",
             target_commitish: result.data.target_commitish || "",
-            upload_url: result.data.zipball_url || result.data.tarball_url || ""
+            upload_url: result.data.url + "/assets"|| ""
 
         }
         return {data:release}
@@ -156,7 +154,7 @@ export class GiteaRepository extends BaseRepository{
         discussion_category_name: string | undefined;
         generate_release_notes: boolean | undefined
     }): Promise<{ data: Release }> {
-        let option: CreateReleaseOption = {
+        let option: EditReleaseOption = {
             body: params.body,
             draft: !!params.draft,
             name: params.name,
@@ -179,38 +177,34 @@ export class GiteaRepository extends BaseRepository{
         url: string,
         id: number
     }): Promise<JSON> {
-        function bufferToArrayBuffer(buffer: Buffer): Promise<ArrayBuffer> {
-            return Promise.resolve(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+        const formData = new FormData();
+        formData.append('attachment', params.body, {
+            filename: params.name,
+            contentType:params.mime
+        });
+
+        try {
+            const response = await fetch(params.url, {
+                method: 'POST',
+                headers: {
+                    ...formData.getHeaders(),
+                    'accept': 'application/json',
+                    authorization: `token ${this.token}`
+                },
+                body: formData.getBuffer()
+            });
+
+            if (response.ok) {
+                return  await response.json();
+            } else {
+                console.log('Error uploading file:'+ response.statusText)
+               throw new Error('Error uploading file:'+ response.statusText);
+            }
+        } catch (error) {
+            console.log('Error uploading file:', error);
+            throw new Error('Error uploading file');
         }
 
-        let data: File = {
-            arrayBuffer(): Promise<ArrayBuffer> {
-                return bufferToArrayBuffer(params.body);
-            },
-            lastModified: 0,
-            name: params.name,
-            size: params.size,
-            slice(start?: number | undefined, end?: number | undefined, contentType?: string | undefined): Blob {
-                return new Blob([params.body]).slice(start, end, contentType);
-            },
-            stream(): ReadableStream<Uint8Array> {
-                return new ReadableStream();
-            },
-            text(): Promise<string> {
-                return Promise.resolve("");
-            },
-            type: params.mime,
-            webkitRelativePath: ""
-
-        }
-
-        let result = await this.api.repos.repoCreateReleaseAttachment(params.owner, params.repo, params.id, {attachment: data})
-        if (result.error !== null) {
-            throw new Error("release error : " + result.error.message)
-        }
-
-
-        return JSON.parse(JSON.stringify(result.data))
     }
 
 }

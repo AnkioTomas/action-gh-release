@@ -273,7 +273,7 @@ export const release = async (config: Config, releaser: Releaser, maxRetries = 3
         return release(config, releaser, maxRetries - 1)
       }
     } else {
-      core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${error.message}`)
+      core.warning(`⚠️ Unexpected error fetching GitHub release for tag ${config.github_ref}: ${JSON.stringify(error || '')}`)
       throw error
     }
   }
