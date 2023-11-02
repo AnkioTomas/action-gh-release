@@ -46,6 +46,12 @@ inputs:
   append_body:
     description: "Append to existing body instead of overwriting it. Default is false."
     required: false
+  platform:
+    description: 'use this action in github or gitea or other platform'
+    default: "github"
+  baseUrl:
+    description: 'code platform'
+    default: "https://api.github.com"
 env:
   "GITHUB_TOKEN": "As provided by Github Actions"
 outputs:
